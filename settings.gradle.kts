@@ -57,6 +57,8 @@ include(":federated-catalog:fc-00-basic:federated-catalog-base")
 include(":federated-catalog:fc-00-basic:fixed-node-resolver")
 include(":federated-catalog:fc-01-embedded:fc-connector")
 include(":federated-catalog:fc-02-standalone:standalone-fc")
+include(":federated-catalog:extensions:trusted-participants-whitelist")
+include(":federated-catalog:extensions:policies")
 
 
 // modules for code samples ------------------------------------------------------------------------
