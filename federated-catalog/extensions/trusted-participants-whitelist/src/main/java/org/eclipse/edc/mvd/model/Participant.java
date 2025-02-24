@@ -14,10 +14,6 @@
 
 package org.eclipse.edc.mvd.model;
 
-
-
-//public record Participant(String id, String name, String url) {
-//}
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -28,11 +24,7 @@ public class Participant {
     private final String name;
     private final String url;
 
-//    public Participant(String id, String name, String url) {
-//        this.id = id;
-//        this.name = name;
-//        this.url = url;
-//    }
+
 
     @JsonCreator
     public Participant(
