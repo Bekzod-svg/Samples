@@ -29,6 +29,7 @@ import org.eclipse.edc.mvd.model.NegotiationRequest;
 import org.eclipse.edc.mvd.model.NegotiationResponse;
 import org.eclipse.edc.mvd.model.Participant;
 import org.eclipse.edc.mvd.model.TrustedParticipantsResponse;
+import org.eclipse.edc.mvd.service.DataExchangeQueueManager;
 import org.eclipse.edc.mvd.util.HashUtil;
 import org.eclipse.edc.spi.monitor.Monitor;
 
@@ -41,8 +42,6 @@ import java.util.List;
 
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.UriInfo;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 
 /**
  * TrustedParticipantsWhitelistApiController provides endpoints
@@ -57,6 +56,7 @@ public class TrustedParticipantsWhitelistApiController {
   private final TrustedParticipantsWhitelist trustedList;
   private final HttpClient httpClient;
   private final ObjectMapper objectMapper;
+  private final DataExchangeQueueManager queueManager;
 
   /**
    * Constructor for TrustedParticipantsWhitelistApiController.
@@ -68,6 +68,7 @@ public class TrustedParticipantsWhitelistApiController {
     this.trustedList = TrustedParticipantsWhitelist.getInstance();
     this.httpClient = HttpClient.newHttpClient();
     this.objectMapper = new ObjectMapper();
+    this.queueManager = new DataExchangeQueueManager();
   }
 
   /**
@@ -141,76 +142,6 @@ public class TrustedParticipantsWhitelistApiController {
    * @param counterPartyUrl The URL of the counterparty to negotiate with.
    * @return The result of the negotiation.
    */
-//  @POST
-//  @Path("negotiate/{counterPartyUrl}")
-//  public String initiateNegotiation(@PathParam("counterPartyUrl") String counterPartyUrl) {
-//    try {
-//      List<Participant> participants = trustedList.getTrustedParticipants();
-//      String hash = HashUtil.computeHash(participants);
-//      NegotiationInitiateRequest negotiationInitiateRequest = new NegotiationInitiateRequest(participants, hash);
-//      String requestBody = objectMapper.writeValueAsString(negotiationInitiateRequest);
-//      HttpRequest request = HttpRequest.newBuilder()
-//          .uri(URI.create(counterPartyUrl))
-//          .header("Content-Type", "application/json")
-//          .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-//          .build();
-//      HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-//      monitor.info("Negotiation initiated with: " + counterPartyUrl + "; Response: " + response.body());
-//      return response.body();
-//    } catch (Exception e) {
-//      monitor.warning("Failed to initiate negotiation with " + counterPartyUrl + ": " + e.getMessage());
-//      return "{\"error\":\"Failed to send negotiation request: " + e.getMessage() + "\"}";
-//    }
-//  }
-
-//  @POST
-//  @Path("negotiate/{counterPartyUrl}")
-//  public String initiateNegotiation(@PathParam("counterPartyUrl") String counterPartyUrl) {
-//    try {
-//      // Get the list of trusted participants from your whitelist
-//      List<Participant> trustedDataTrustees = trustedList.getTrustedParticipants();
-//
-//      // Compute the hash of the trusted participants
-//      String hash = HashUtil.computeHash(trustedDataTrustees);
-//
-//      // Define the data source and data sink participants
-//      Participant dataSource = new Participant("participant1", "name1", "http://localhost:9999/protocol");
-//      Participant dataSink = new Participant("participant2", "name2","http://localhost:8888/protocol");
-//
-//      // List of assets involved in the negotiation
-//      List<String> assets = List.of("asset1", "asset2");
-//
-//      // Create the NegotiationRequest object
-//      NegotiationRequest negotiationRequest = new NegotiationRequest(
-//              dataSource,
-//              dataSink,
-//              trustedDataTrustees,
-//              assets,
-//              hash
-//      );
-//
-//      // Serialize the NegotiationRequest to JSON
-//      String requestBody = objectMapper.writeValueAsString(negotiationRequest);
-//
-//      // Build the HTTP request to the counterparty's receive-negotiation endpoint
-//      HttpRequest request = HttpRequest.newBuilder()
-//              .uri(URI.create(counterPartyUrl))
-//              .header("Content-Type", "application/json")
-//              .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-//              .build();
-//
-//      // Send the request and get the response
-//      HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-//
-//      monitor.info("Negotiation initiated with: " + counterPartyUrl + "; Response: " + response.body());
-//
-//      // Return the response from the counterparty
-//      return response.body();
-//    } catch (Exception e) {
-//      monitor.warning("Failed to initiate negotiation with " + counterPartyUrl + ": " + e.getMessage());
-//      return "{\"error\":\"Failed to send negotiation request: " + e.getMessage() + "\"}";
-//    }
-//  }
 
   @POST
   @Path("negotiate/{counterPartyUrl}")
@@ -222,10 +153,7 @@ public class TrustedParticipantsWhitelistApiController {
       // Compute the hash of the trusted participants
       String hash = HashUtil.computeHash(trustedDataTrustees);
 
-      // Extract dataSource from the request URL before "/trusted-participants"
-//      String requestUri = uriInfo.getRequestUri().toString();
-//      int negotiateIndex = requestUri.indexOf("/trusted-participants/");
-//      String baseUrl = requestUri.substring(0, negotiateIndex);
+      // Extract dataSink from the request URL before "/trusted-participants"
       String requestUri = uriInfo.getRequestUri().toString();
       int negotiateIndex = requestUri.indexOf("/negotiate/");
       int trustedParticipantsIndex = requestUri.indexOf("/api/trusted-participants");
@@ -237,18 +165,11 @@ public class TrustedParticipantsWhitelistApiController {
       }
       Participant dataSink = new Participant(null, "consumer", dataSinkUrl);
 
-      // Decode counterPartyUrl to get dataSink URL
-//      String decodedCounterPartyUrl = URLDecoder.decode(counterPartyUrl, StandardCharsets.UTF_8.name());
+      // Extract dataSource from dcounterPartyUrl URL
       String dataSourceUrl = counterPartyUrl.substring(0, counterPartyUrl.indexOf("/receive-negotiation"));
 
       Participant dataSource = new Participant(null, "provider", dataSourceUrl);
 
-      // Log the request parameters
-//      monitor.info("InitiateNegotiation called with parameters:");
-//      monitor.info("Encoded CounterPartyUrl: " + counterPartyUrl);
-//      monitor.info("Decoded CounterPartyUrl: " + decodedCounterPartyUrl);
-//      monitor.info("DataSource URL: " + dataSource.getUrl());
-//      monitor.info("DataSink URL: " + dataSink.getUrl());
       // List of assets involved in the negotiation
       List<String> assets = List.of("asset1", "asset2");
 
@@ -287,7 +208,8 @@ public class TrustedParticipantsWhitelistApiController {
         DataTrusteeRequest dataTrusteeRequest = new DataTrusteeRequest(
                 negotiationResponse.dataSource(),
                 negotiationResponse.dataSink(),
-                negotiationResponse.assets()
+                negotiationResponse.assets(),
+                "consumer"
         );
         String notificationBody = objectMapper.writeValueAsString(dataTrusteeRequest);
 
@@ -337,37 +259,35 @@ public class TrustedParticipantsWhitelistApiController {
       monitor.warning("Failed to compute hash: " + e.getMessage());
       return "{\"error\":\"Failed to compute hash: " + e.getMessage() + "\"}";
     }
-//    List<Participant> matches = trustedList.getTrustedParticipants().stream()
-//        .filter(negotiationRequest.trustedDataTrustees()::contains)
-//        .toList();
+
     List<Participant> matches = trustedList.getTrustedParticipants().stream()
             .filter(p -> negotiationRequest.trustedDataTrustees().stream()
                     .anyMatch(nrp -> p.getName().equals(nrp.getName()) && p.getUrl().equals(nrp.getUrl())))
             .toList();
-    // Select the first matched participant for simplicity, can implement a better
-    // selection logic
+    // Select the first matched participant
     Participant chosenDataTrustee = matches.isEmpty() ? null : matches.get(0);
     if (chosenDataTrustee != null && chosenDataTrustee.getUrl()!= null && !chosenDataTrustee.getUrl().isEmpty()) {
       try {
         String notificationUrl = chosenDataTrustee.getUrl() + "/notify";
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(notificationUrl))
-            .header("Content-Type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(new DataTrusteeRequest(
-                negotiationRequest.dataSource(),
-                negotiationRequest.dataSink(),
-                negotiationRequest.assets()))))
-            .build();
+                .uri(URI.create(notificationUrl))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(new DataTrusteeRequest(
+                        negotiationRequest.dataSource(),
+                        negotiationRequest.dataSink(),
+                        negotiationRequest.assets(),
+                        "provider"))))
+                .build();
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         monitor.info("Notification sent to " + chosenDataTrustee.getName() + "; Response: " + response.body());
       } catch (Exception e) {
         monitor.warning("Failed to send notification to " + chosenDataTrustee.getName() + ": " + e.getMessage());
       }
       var negotiationResponse = new NegotiationResponse(
-          negotiationRequest.dataSource(),
-          negotiationRequest.dataSink(),
-          chosenDataTrustee,
-          negotiationRequest.assets());
+              negotiationRequest.dataSource(),
+              negotiationRequest.dataSink(),
+              chosenDataTrustee,
+              negotiationRequest.assets());
       try {
         // Serialize the negotiation response to JSON
         String responseBody = objectMapper.writeValueAsString(negotiationResponse);
@@ -376,20 +296,33 @@ public class TrustedParticipantsWhitelistApiController {
         monitor.warning("Failed to serialize negotiation response: " + e.getMessage());
         return "{\"error\":\"Failed to serialize negotiation response: " + e.getMessage() + "\"}";
       }
-//      return "{\"dataSource\":" + negotiationResponse.dataSource() +
-//          ", \"dataSink\":\"" + negotiationResponse.dataSink() +
-//          ", \"trustedDataTrustee\":\"" + chosenDataTrustee +
-//          ", \"assets\":\"" + negotiationResponse.assets() +
-//          "\"}";
     } else {
       return "{\"trustedDataTrustee\":[], \"message\":\"No commonly trusted data trustee found\"}";
     }
   }
 
+
   @POST
   @Path("notify")
-  public Response receiveNotification(String notification) {
-    monitor.info("Received notification: " + notification);
+  public Response receiveNotification(DataTrusteeRequest request) {
+    monitor.info("Received notification: " + request);
+
+    // Determine the sender type from the request
+    String senderType = request.senderType(); // "provider" or "consumer"
+
+    if ("provider".equalsIgnoreCase(senderType)) {
+      queueManager.addProviderNotification(request.dataSource(), request.assets());
+    } else if ("consumer".equalsIgnoreCase(senderType)) {
+      queueManager.addConsumerNotification(request.dataSink(), request.assets());
+    } else {
+      return Response.status(Response.Status.BAD_REQUEST)
+              .entity("{\"error\":\"Invalid sender type\"}")
+              .build();
+    }
+
+    queueManager.processEntries();
+
     return Response.ok("{\"message\":\"Notification received\"}").build();
   }
+
 }
