@@ -108,7 +108,7 @@ stateDiagram   [*] --> NOT_READY : One notification received
 `
 
 `
-mermaid stateDiagram [] --> NOT_READY : One notification received NOT_READY --> READY : Second notification received NOT_READY --> FAILED : Timeout (1 day) READY --> IN_PROGRESS : Start data exchange READY --> FAILED : Timeout (1 day) IN_PROGRESS --> COMPLETED : Exchange successful IN_PROGRESS --> FAILED : Exchange failed FAILED --> [] COMPLETED --> [*]
+stateDiagram [] --> NOT_READY : One notification received NOT_READY --> READY : Second notification received NOT_READY --> FAILED : Timeout (1 day) READY --> IN_PROGRESS : Start data exchange READY --> FAILED : Timeout (1 day) IN_PROGRESS --> COMPLETED : Exchange successful IN_PROGRESS --> FAILED : Exchange failed FAILED --> [] COMPLETED --> [*]
 `
 
 ---
