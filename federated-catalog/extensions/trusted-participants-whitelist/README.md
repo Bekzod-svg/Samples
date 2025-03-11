@@ -92,8 +92,7 @@ This README provides a comprehensive guide on how to perform a data exchange bet
 The following diagram illustrates the state transitions during the data exchange process:
 
 ```mermaid
-graph TD
-
+stateDiagram-v2
 [*] --> NOT_READY : One notification received
 NOT_READY --> READY : Second notification received
 NOT_READY --> FAILED : Timeout (1 day)
